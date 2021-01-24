@@ -2,7 +2,6 @@
 # Imports
 #----------------------------------------------------------------------------#
 import sys
-from sqlalchemy.ext.declarative import declarative_base
 import json
 import dateutil.parser
 import babel
@@ -16,6 +15,9 @@ from forms import *
 #----------------------------------------------------------------------------#
 from config import SQLALCHEMY_DATABASE_URI
 from flask_migrate import Migrate
+from models import db, Artist, Venue, Show
+
+
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -28,84 +30,16 @@ app.config.from_object('config')
 # TODO: connect to a local postgresql database
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+# db = SQLAlchemy(app)
+
+db.init_app(app)
 migrate = Migrate(app, db)
-
-#----------------------------------------------------------------------------#
-# Models.
-#----------------------------------------------------------------------------#
-
-
-# Show Table
-class Show(db.Model):
-    __tablename__ = 'Show'
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    venue_id = db.Column(db.Integer, db.ForeignKey(
-        'Venue.id'))
-
-    artist_id = db.Column(db.Integer, db.ForeignKey(
-        'Artist.id'))
-
-    start_time = db.Column(db.DateTime, nullable=True,
-                           default=datetime.now().strftime('%Y-%m-%d %H:%S:%M'))
-
-
-class Venue(db.Model):
-    __tablename__ = 'Venue'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
-    address = db.Column(db.String(120))
-    phone = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
-
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-    genres = db.Column(db.ARRAY(db.String(50)))
-    website = db.Column(db.String(500))
-    seeking_talent = db.Column(db.Boolean)
-    seeking_description = db.Column(db.Text)
-
-    # shows relation
-    shows = db.relationship('Show', backref='venues', lazy=True)
-
-    def __repr__(self):
-        return f'<Venue ID: {self.id}, name: {self.name}>'
-
-
-class Artist(db.Model):
-    __tablename__ = 'Artist'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
-    phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
-
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-    seeking_venue = db.Column(db.Boolean)
-    website = db.Column(db.String(500))
-    seeking_description = db.Column(db.Text)
-
-    # shows relation
-    shows = db.relationship('Show', backref='artists', lazy=True)
-
-    def __repr__(self):
-        return f'<Artist ID: {self.id}, name: {self.name}>'
-
-# TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
 
 #----------------------------------------------------------------------------#
 # Filters.
 #----------------------------------------------------------------------------#
+
 
 def format_datetime(value, format='medium'):
     date = dateutil.parser.parse(value)
@@ -204,29 +138,26 @@ def show_venue(venue_id):
     v = Venue.query.filter(Venue.id == venue_id).first()
 
     # PAST SHOWS DATA
-    past_shows = Show.query.filter(Show.venue_id == v.id).filter(
+    past_shows = Show.query.join(Artist).filter(Show.venue_id == v.id).filter(
         Show.start_time < time_now).all()
     past_shows_data = []
-
     for p in past_shows:
-        artist = Artist.query.filter(Artist.id == p.artist_id).first()
         past_shows_data.append({
-            "artist_id": artist.id,
-            "artist_name": artist.name,
-            "artist_image_link": artist.image_link,
+            "artist_id": p.artists.id,
+            "artist_name": p.artists.name,
+            "artist_image_link": p.artists.image_link,
             "start_time": str(p.start_time)
         })
 
     # UPCOMING SHOWS DATA
-    upcoming_shows = Show.query.filter(Show.venue_id == v.id).filter(
+    upcoming_shows = Show.query.join(Artist).filter(Show.venue_id == v.id).filter(
         Show.start_time > time_now).all()
     upcoming_shows_data = []
     for u in upcoming_shows:
-        artist = Artist.query.filter(Artist.id == u.artist_id).first()
         upcoming_shows_data.append({
-            "artist_id": artist.id,
-            "artist_name": artist.name,
-            "artist_image_link": artist.image_link,
+            "artist_id": u.artists.id,
+            "artist_name": u.artists.name,
+            "artist_image_link": u.artists.image_link,
             "start_time": str(u.start_time)
         })
 
@@ -355,28 +286,26 @@ def show_artist(artist_id):
     a = Artist.query.filter(Artist.id == artist_id).first()
 
     # PAST SHOWS DATA
-    past_shows = Show.query.filter(Show.artist_id == a.id).filter(
+    past_shows = Show.query.join(Venue).filter(Show.artist_id == a.id).filter(
         Show.start_time < time_now).all()
     past_shows_data = []
     for p in past_shows:
-        venue = Venue.query.filter(Venue.id == p.venue_id).first()
         past_shows_data.append({
-            "venue_id": venue.id,
-            "venue_name": venue.name,
-            "venue_image_link": venue.image_link,
+            "venue_id": p.venues.id,
+            "venue_name": p.venues.name,
+            "venue_image_link": p.venues.image_link,
             "start_time": str(p.start_time)
         })
 
     # UPCOMING SHOWS DATA
-    upcoming_shows = Show.query.filter(Show.artist_id == a.id).filter(
+    upcoming_shows = Show.query.join(Venue).filter(Show.artist_id == a.id).filter(
         Show.start_time > time_now).all()
     upcoming_shows_data = []
     for u in upcoming_shows:
-        venue = Venue.query.filter(Venue.id == u.venue_id).first()
         upcoming_shows_data.append({
-            "venue_id": venue.id,
-            "venue_name": venue.name,
-            "venue_image_link": venue.image_link,
+            "venue_id": u.venues.id,
+            "venue_name": u.venues.name,
+            "venue_image_link": u.venues.image_link,
             "start_time": str(u.start_time)
         })
 
@@ -551,19 +480,16 @@ def shows():
     # displays list of shows at /shows
     # TODO: replace with real venues data.
     #       num_shows should be aggregated based on number of upcoming shows per venue.
-    shows = Show.query.all()
+    shows = Show.query.join(Venue).join(Artist).all()
     data = []
 
     for s in shows:
-        v = Venue.query.filter(Venue.id == s.venue_id).first()
-        a = Artist.query.filter(Artist.id == s.artist_id).first()
-
         data.append({
-            "venue_id": v.id,
-            "venue_name": v.name,
+            "venue_id": s.venues.id,
+            "venue_name": s.venues.name,
             "artist_id": s.artist_id,
-            "artist_name": a.name,
-            "artist_image_link": a.image_link,
+            "artist_name": s.artists.name,
+            "artist_image_link": s.artists.image_link,
             "start_time": str(s.start_time)
         })
 
