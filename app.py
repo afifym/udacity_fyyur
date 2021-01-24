@@ -202,32 +202,38 @@ def create_venue_submission():
     phone = request.form.get('phone')
     genres = request.form.get('genres')
     facebook_link = request.form.get('facebook_link')
+    seeking_talent = request.form.get('seeking_talent')
+    seeking_description = request.form.get('seeking_description')
+    website = request.form.get('website')
 
     try:
         v = Venue(
             name=name, city=city, state=state,
             address=address, phone=phone, genres=genres,
-            facebook_link=facebook_link
+            facebook_link=facebook_link, seeking_talent=True if(
+                seeking_talent == "Yes") else False,
+            seeking_description=seeking_description, website=website
         )
         db.session.add(v)
         db.session.commit()
         # on successful db insert, flash success
-        flash('Venue ' + request.form['name'] + ' was successfully listed!')
+        flash('Venue ' + request.form['name'] +
+              ' was successfully listed!')
 
     # TODO: on unsuccessful db insert, flash an error instead.
     # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
     # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
     except:
         flash('An error occurred. Venue ' +
-              name + ' could not be listed.')
+              form.name.data + ' could not be listed.')
 
     return render_template('pages/home.html')
 
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
-    # TODO: Complete this endpoint for taking a venue_id, and using
-    # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
+        # TODO: Complete this endpoint for taking a venue_id, and using
+        # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
     v = Venue.query.filter(Venue.id == venue_id).first()
     db.session.delete(v)
     db.session.commit()
@@ -366,12 +372,19 @@ def edit_artist_submission(artist_id):
     phone = request.form.get('phone')
     genres = request.form.get('genres')
     facebook_link = request.form.get('facebook_link')
+    website = request.form.get('website')
+    seeking_venue = request.form.get('facebook_link')
+    seeking_description = request.form.get('seeking_description')
 
     artist.name = name
     artist.city = city
     artist.phone = phone
     artist.genres = genres
     artist.facebook_link = facebook_link
+    artist.website = website
+    artist.seeking_venue = True if(
+        seeking_venue == "Yes") else False
+    artist.seeking_description = seeking_description
 
     db.session.commit()
 
@@ -416,6 +429,9 @@ def edit_venue_submission(venue_id):
     phone = request.form.get('phone')
     genres = request.form.get('genres')
     facebook_link = request.form.get('facebook_link')
+    website = request.form.get('website')
+    seeking_talent = request.form.get('seeking_talent')
+    seeking_description = request.form.get('seeking_description')
 
     venue.name = name
     venue.city = city
@@ -424,6 +440,10 @@ def edit_venue_submission(venue_id):
     venue.phone = phone
     venue.genres = genres
     venue.facebook_link = facebook_link
+    venue.website = website
+    venue.seeking_talent = True if(
+        seeking_talent == "Yes") else False
+    venue.seeking_description = seeking_description
 
     db.session.commit()
 
@@ -451,13 +471,18 @@ def create_artist_submission():
     phone = request.form.get('phone')
     genres = request.form.get('genres')
     facebook_link = request.form.get('facebook_link')
+    website = request.form.get('website')
+    seeking_venue = request.form.get('seeking_venue')
+    seeking_description = request.form.get('seeking_description')
 
     try:
         a = Artist(
             name=name, city=city, state=state,
             phone=phone, genres=genres,
-            facebook_link=facebook_link
+            facebook_link=facebook_link, website=website, seeking_venue=True if(
+                seeking_venue == "Yes") else False, seeking_description=seeking_description
         )
+
         db.session.add(a)
         db.session.commit()
         # on successful db insert, flash success
@@ -467,7 +492,7 @@ def create_artist_submission():
     # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
     except:
         flash('An error occurred. Artist ' +
-              name + ' could not be listed.')
+              form.name.data + ' could not be listed.')
 
     return render_template('pages/home.html')
 
